@@ -1,0 +1,762 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Reading Desk</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=Public+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a shelf of uploaded files on the left, a quiet reading surface on the right; stacks on phones. */
+:root {
+  --bg: #e9edf0;
+  --surface: #f7f9fa;
+  --page: #ffffff;
+  --ink: #1d2830;
+  --muted: #5d6b75;
+  --line: #cfd7dd;
+  --accent: #2c5f7a;
+  --accent-soft: #d6e4ec;
+  --mark: #f3dc7a;
+  --shadow: 0 1px 2px rgba(20,35,45,.08), 0 6px 20px rgba(20,35,45,.08);
+  --f-display: "Libre Caslon Text", Georgia, "Times New Roman", serif;
+  --f-read: "Literata", Georgia, serif;
+  --f-ui: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --read-size: 18px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12181d; --surface: #182128; --page: #1f2a32; --ink: #e3e9ed; --muted: #93a3ae;
+  --line: #2c3a44; --accent: #7fb3cf; --accent-soft: #23394a; --mark: #7a6420;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.3); color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12181d; --surface: #182128; --page: #1f2a32; --ink: #e3e9ed; --muted: #93a3ae;
+  --line: #2c3a44; --accent: #7fb3cf; --accent-soft: #23394a; --mark: #7a6420;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.3); color-scheme: dark }
+
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-ui); font-size: 14px; }
+.app { display: grid; grid-template-columns: 290px minmax(0,1fr); height: 100%; }
+
+/* Shelf */
+.shelf { background: var(--surface); border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: 16px; padding-block: 20px; gap: 18px; }
+.brand { font-family: var(--f-display); font-size: 22px; margin: 0; letter-spacing: -.01em; }
+.brand small { display: block; font-family: var(--f-ui); font-size: 12px; color: var(--muted); letter-spacing: .02em; margin-top: 4px; }
+.drop { border: 1.5px dashed var(--line); border-radius: 10px; padding: 18px 14px; text-align: center; cursor: pointer;
+  transition: border-color .15s, background .15s; color: var(--muted); line-height: 1.45; }
+.drop strong { color: var(--accent); font-weight: 600; }
+.drop:hover, .drop:focus-visible, .drop.over { border-color: var(--accent); background: var(--accent-soft); outline: none; }
+.drop .types { display: block; margin-top: 6px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.files { list-style: none; margin: 0; padding: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; min-height: 0; flex: 1; }
+.file { display: grid; grid-template-columns: 38px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 8px; border-radius: 8px; cursor: pointer; }
+.file:hover { background: var(--accent-soft); }
+.file.active { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.file:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tag { font-size: 10px; font-weight: 600; letter-spacing: .05em; text-align: center; padding: 6px 0; border-radius: 4px;
+  background: var(--page); border: 1px solid var(--line); color: var(--accent); }
+.fname { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+.fmeta { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.x { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 18px; line-height: 1; padding: 4px 6px; border-radius: 4px; }
+.x:hover, .x:focus-visible { color: var(--ink); background: var(--line); outline: none; }
+
+/* Reader */
+.reader { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding-block: 12px; border-bottom: 1px solid var(--line);
+  padding-left: 20px; padding-right: max(20px, env(safe-area-inset-right, 0px)); background: var(--surface); }
+.title { font-family: var(--f-display); font-size: 17px; margin: 0; flex: 1 1 200px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stats { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; flex-basis: 100%; order: 3; margin-top: -6px; }
+.tools { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.btn { font: inherit; font-size: 13px; border: 1px solid var(--line); background: var(--page); color: var(--ink); border-radius: 6px;
+  padding: 6px 10px; cursor: pointer; min-width: 32px; }
+.btn:hover { border-color: var(--accent); }
+.btn:focus-visible, .search:focus-visible, .pagein:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.readout { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; min-width: 46px; text-align: center; }
+.pagein { width: 46px; font: inherit; font-size: 13px; text-align: center; padding: 5px 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--page); color: var(--ink); }
+.search { font: inherit; font-size: 13px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--page); color: var(--ink); width: 170px; }
+.sep { width: 1px; height: 22px; background: var(--line); }
+
+.view { flex: 1; overflow: auto; min-height: 0; padding-block: 28px 60px; padding-left: 20px; padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+.pages { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.pg { position: relative; background: #fff; box-shadow: var(--shadow); max-width: none; }
+.pg canvas { display: block; }
+.pg .num { position: absolute; bottom: -18px; right: 0; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pdfwrap { overflow-x: auto; max-width: 100%; }
+
+.doc { background: var(--page); box-shadow: var(--shadow); max-width: 760px; margin: 0 auto; padding: clamp(24px, 6vw, 64px);
+  font-family: var(--f-read); font-size: var(--read-size); line-height: 1.7; border-radius: 2px; overflow-wrap: anywhere; }
+.doc > :first-child { margin-top: 0; }
+.doc h1, .doc h2, .doc h3 { font-family: var(--f-display); line-height: 1.25; text-wrap: balance; }
+.doc h1 { font-size: 1.7em; } .doc h2 { font-size: 1.35em; } .doc h3 { font-size: 1.12em; }
+.doc p { margin: 0 0 1em; max-width: 65ch; }
+.doc table { border-collapse: collapse; display: block; overflow-x: auto; font-size: .9em; }
+.doc td, .doc th { border: 1px solid var(--line); padding: 6px 10px; }
+.doc img { max-width: 100%; height: auto; }
+.doc pre.plain { white-space: pre-wrap; font-family: var(--f-read); margin: 0; }
+mark { background: var(--mark); color: inherit; border-radius: 2px; }
+mark.cur { outline: 2px solid var(--accent); }
+
+.note { max-width: 520px; margin: 40px auto; text-align: center; color: var(--muted); line-height: 1.6; }
+.note h2 { font-family: var(--f-display); color: var(--ink); font-weight: 400; font-size: 22px; }
+.err { color: #b03a2e; }
+.sample-flag { display: inline-block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent);
+  border: 1px solid var(--accent); border-radius: 999px; padding: 2px 8px; margin-bottom: 18px; font-family: var(--f-ui); }
+
+/* Read-aloud dock */
+.dock { border-top: 1px solid var(--line); background: var(--surface); padding-block: 12px;
+  padding-left: 20px; padding-right: max(20px, env(safe-area-inset-right, 0px)); display: grid; gap: 10px; }
+.now { font-family: var(--f-read); font-size: 15px; line-height: 1.45; color: var(--ink); min-height: 1.45em;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.now.idle { color: var(--muted); font-family: var(--f-ui); font-size: 13px; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.transport { display: flex; align-items: center; gap: 6px; }
+.play { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--accent); color: var(--page); cursor: pointer;
+  display: grid; place-items: center; }
+.play:hover { filter: brightness(1.08); }
+.play:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.play:disabled { opacity: .45; cursor: default; }
+.play svg { width: 18px; height: 18px; fill: currentColor; }
+.field { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+.field select { font: inherit; font-size: 13px; text-transform: none; letter-spacing: 0; color: var(--ink); background: var(--page);
+  border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; max-width: 260px; }
+.field select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.voicecount { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.speaking { background: var(--accent-soft); box-shadow: -10px 0 0 var(--accent-soft), 10px 0 0 var(--accent-soft); border-radius: 3px; transition: background .2s; }
+.pg.speaking { box-shadow: 0 0 0 3px var(--accent), var(--shadow); background: #fff; }
+.doc [data-say] { cursor: pointer; }
+.doc pre.plain p { white-space: pre-wrap; }
+
+@media (max-width: 760px) {
+  .dock { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .field select { max-width: 200px; }
+  .app { grid-template-columns: 1fr; grid-template-rows: auto minmax(0,1fr); }
+  .shelf { border-right: 0; border-bottom: 1px solid var(--line); padding-right: max(16px, env(safe-area-inset-right, 0px)); gap: 12px; padding-block: 14px; }
+  .files { flex-direction: row; overflow-x: auto; flex: none; }
+  .file { grid-template-columns: 34px 150px auto; }
+  .drop { padding: 12px; }
+  .bar, .view { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .search { width: 130px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+
+<div class="app">
+  <aside class="shelf">
+    <h1 class="brand">Reading Desk<small>Files stay in this browser tab</small></h1>
+    <div class="drop" id="drop" tabindex="0" role="button" aria-label="Upload files">
+      <strong>Choose files</strong> or drop them here
+      <span class="types">PDF · DOCX · TXT · MD · HTML</span>
+    </div>
+    <input type="file" id="picker" multiple accept=".pdf,.docx,.txt,.md,.markdown,.html,.htm,.csv,.json,.rtf" hidden>
+    <p class="label">On the desk</p>
+    <ul class="files" id="files"></ul>
+  </aside>
+
+  <main class="reader">
+    <div class="bar">
+      <h2 class="title" id="title">Nothing open</h2>
+      <div class="tools" id="pdfTools" hidden>
+        <button class="btn" id="prev" aria-label="Previous page">‹</button>
+        <input class="pagein" id="pageIn" inputmode="numeric" aria-label="Page number">
+        <span class="readout" id="pageOf">/ 0</span>
+        <button class="btn" id="next" aria-label="Next page">›</button>
+        <span class="sep"></span>
+        <button class="btn" id="zoomOut" aria-label="Zoom out">−</button>
+        <span class="readout" id="zoomRead">100%</span>
+        <button class="btn" id="zoomIn" aria-label="Zoom in">+</button>
+        <button class="btn" id="fit">Fit width</button>
+      </div>
+      <div class="tools" id="docTools" hidden>
+        <button class="btn" id="smaller" aria-label="Smaller text">A−</button>
+        <button class="btn" id="bigger" aria-label="Larger text">A+</button>
+        <span class="sep"></span>
+        <input class="search" id="search" type="search" placeholder="Find in document" aria-label="Find in document">
+        <span class="readout" id="hits"></span>
+        <button class="btn" id="hitPrev" aria-label="Previous match">↑</button>
+        <button class="btn" id="hitNext" aria-label="Next match">↓</button>
+      </div>
+      <div class="stats" id="stats"></div>
+    </div>
+    <div class="view" id="view"></div>
+    <div class="dock" id="dock">
+      <div class="now idle" id="now">Press play to hear this document, or click any paragraph to start reading from there.</div>
+      <div class="controls">
+        <div class="transport">
+          <button class="btn" id="back" aria-label="Previous sentence">⏮</button>
+          <button class="play" id="play" aria-label="Read aloud">
+            <svg id="icoPlay" viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5z"/></svg>
+            <svg id="icoPause" viewBox="0 0 24 24" hidden><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
+          </button>
+          <button class="btn" id="fwd" aria-label="Next sentence">⏭</button>
+          <button class="btn" id="stop" aria-label="Stop and go back to the start">Stop</button>
+        </div>
+        <label class="field" for="voice">Voice <select id="voice"></select></label>
+        <button class="btn" id="sampleVoice">Hear this voice</button>
+        <label class="field" for="rate">Speed
+          <select id="rate">
+            <option value="0.75">0.75×</option><option value="0.9">0.9×</option><option value="1" selected>1×</option>
+            <option value="1.15">1.15×</option><option value="1.3">1.3×</option><option value="1.5">1.5×</option>
+            <option value="1.75">1.75×</option><option value="2">2×</option>
+          </select>
+        </label>
+        <span class="voicecount" id="voiceCount"></span>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const view = $('view'), filesEl = $('files'), picker = $('picker'), drop = $('drop');
+  if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  let docs = [], current = null, seq = 0;
+  let zoom = 1, fitMode = true, readSize = 18;
+  let hits = [], hitIdx = -1;
+
+  const fmtSize = b => b < 1024 ? b + ' B' : b < 1048576 ? (b/1024).toFixed(0) + ' KB' : (b/1048576).toFixed(1) + ' MB';
+  const extOf = n => (n.split('.').pop() || '').toLowerCase();
+  const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const readingStats = text => {
+    const words = (text.match(/\S+/g) || []).length;
+    const mins = Math.max(1, Math.round(words / 238));
+    return `${words.toLocaleString()} words · about ${mins} min read`;
+  };
+
+  /* ---------- read aloud ---------- */
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch {} }
+  };
+
+  function splitSentences(text) {
+    text = text.replace(/\s+/g, ' ').trim();
+    if (!text) return [];
+    const raw = text.match(/[^.!?…]+(?:[.!?…]+["'”’)\]]*|$)\s*/g) || [text];
+    const out = [];
+    for (let s of raw) {
+      s = s.trim(); if (!s) continue;
+      // merge tiny fragments like "e.g." or "Mr." into the previous sentence
+      if (out.length && (s.length < 12 || /\b(?:Mr|Mrs|Ms|Dr|St|vs|etc|e\.g|i\.e|No|Fig)\.$/i.test(out[out.length - 1]))) { out[out.length - 1] += ' ' + s; continue; }
+      out.push(s);
+    }
+    // break very long sentences so browsers don't cut speech off
+    const final = [];
+    for (const s of out) {
+      if (s.length <= 240) { final.push(s); continue; }
+      let rest = s;
+      while (rest.length > 240) {
+        let cut = Math.max(rest.lastIndexOf(', ', 240), rest.lastIndexOf('; ', 240));
+        if (cut < 80) cut = rest.lastIndexOf(' ', 240);
+        if (cut < 1) cut = 240;
+        final.push(rest.slice(0, cut + 1).trim()); rest = rest.slice(cut + 1).trim();
+      }
+      if (rest) final.push(rest);
+    }
+    return final;
+  }
+
+  const speech = (() => {
+    const synth = window.speechSynthesis;
+    const voiceSel = $('voice'), rateSel = $('rate'), nowEl = $('now');
+    let voices = [], playing = false, run = 0, pos = null, spokeAny = false, litEl = null;
+    const idleMsg = 'Press play to hear this document, or click any paragraph to start reading from there.';
+
+    function setNow(text, idle) { nowEl.textContent = text; nowEl.classList.toggle('idle', !!idle); }
+    function setPlaying(p) {
+      playing = p;
+      $('icoPlay').hidden = p; $('icoPause').hidden = !p;
+      $('play').setAttribute('aria-label', p ? 'Pause' : 'Read aloud');
+    }
+    function light(el) {
+      if (litEl === el) return;
+      litEl?.classList.remove('speaking'); litEl = el; el?.classList.add('speaking');
+      if (el) {
+        const r = el.getBoundingClientRect(), v = view.getBoundingClientRect();
+        if (r.top < v.top + 40 || r.bottom > v.bottom - 40) {
+          const y = el.offsetTop - view.clientHeight * 0.3;
+          view.scrollTo({ top: Math.max(0, y), behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+        }
+      }
+    }
+
+    function loadVoices() {
+      if (!synth) return;
+      voices = synth.getVoices().slice();
+      const saved = store.get('rd-voice') || voiceSel.value;
+      const lang = (navigator.language || 'en-US').toLowerCase();
+      const base = lang.split('-')[0];
+      let name = null; try { name = new Intl.DisplayNames([navigator.language || 'en'], { type: 'language' }); } catch {}
+      const groups = new Map();
+      for (const v of voices) {
+        const key = v.lang || 'other';
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(v);
+      }
+      const rank = k => { const l = k.toLowerCase(); return l === lang ? 0 : l.split('-')[0] === base ? 1 : 2; };
+      const keys = [...groups.keys()].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+      voiceSel.innerHTML = '';
+      for (const k of keys) {
+        const og = document.createElement('optgroup');
+        let label = k; try { label = name ? `${name.of(k)} (${k})` : k; } catch {}
+        og.label = label;
+        groups.get(k).sort((a, b) => (b.localService === a.localService ? 0 : a.localService ? 1 : -1) || a.name.localeCompare(b.name))
+          .forEach(v => {
+            const o = document.createElement('option');
+            o.value = v.voiceURI || v.name;
+            o.textContent = v.name.replace(/^(Microsoft|Google)\s+/, '') + (v.localService ? '' : ' · online');
+            og.appendChild(o);
+          });
+        voiceSel.appendChild(og);
+      }
+      if (!voices.length) {
+        voiceSel.innerHTML = '<option>No voices found</option>'; voiceSel.disabled = true;
+        $('voiceCount').textContent = '';
+        setNow('Your browser hasn\'t provided any voices yet. Try Chrome, Edge or Safari, or check that text-to-speech is turned on in your device settings.', true);
+        return;
+      }
+      voiceSel.disabled = false;
+      const pick = voices.find(v => (v.voiceURI || v.name) === saved)
+        || voices.find(v => v.default && v.lang.toLowerCase().startsWith(base))
+        || voices.find(v => v.lang.toLowerCase() === lang)
+        || voices.find(v => v.lang.toLowerCase().startsWith(base)) || voices[0];
+      voiceSel.value = pick.voiceURI || pick.name;
+      const local = voices.filter(v => v.lang.toLowerCase().startsWith(base)).length;
+      let langName = base; try { langName = name?.of(base) || base; } catch {}
+      $('voiceCount').textContent = `${local} ${langName} · ${voices.length} voices in all`;
+    }
+    const currentVoice = () => voices.find(v => (v.voiceURI || v.name) === voiceSel.value) || null;
+
+    /* chunks: [{ text, el?, page? }] — documents are built once, PDFs page by page */
+    function docChunks() {
+      if (current._chunks) return current._chunks;
+      const root = view.querySelector('.doc'); const list = [];
+      if (root) {
+        const sel = 'h1,h2,h3,h4,h5,h6,p,li,blockquote,td,th,pre:not(.plain),dt,dd,figcaption';
+        const blocks = [...root.querySelectorAll(sel)].filter(b => !b.querySelector(sel) && !b.closest('.sample-flag'));
+        blocks.forEach((el, bi) => {
+          el.dataset.say = bi;
+          for (const s of splitSentences(el.textContent)) list.push({ text: s, el, block: bi });
+        });
+      }
+      current._chunks = list;
+      return list;
+    }
+    async function pdfChunks(d, n) {
+      d._pageChunks ||= {};
+      if (d._pageChunks[n]) return d._pageChunks[n];
+      const page = await d.pdf.getPage(n);
+      const tc = await page.getTextContent();
+      let text = '';
+      for (const it of tc.items) { text += it.str; if (it.hasEOL) text += ' '; }
+      text = text.replace(/(\w)-\s+(\w)/g, '$1$2');
+      return (d._pageChunks[n] = splitSentences(text).map(t => ({ text: t, page: n })));
+    }
+
+    async function speakFrom(myRun) {
+      const d = current;
+      if (!d || myRun !== run) return;
+      let list;
+      if (d.kind === 'pdf') {
+        list = await pdfChunks(d, pos.page);
+        if (myRun !== run) return;
+        if (pos.i >= list.length) {
+          if (pos.page < d.pdf.numPages) { pos = { page: pos.page + 1, i: 0 }; return speakFrom(myRun); }
+          return finish();
+        }
+        const el = pageEls()[pos.page - 1];
+        if (litEl !== el) { light(el); scrollToPage(pos.page); }
+      } else {
+        list = docChunks();
+        if (pos.i >= list.length) return finish();
+        light(list[pos.i].el);
+      }
+      const chunk = list[pos.i];
+      setNow(chunk.text);
+      const u = new SpeechSynthesisUtterance(chunk.text);
+      const v = currentVoice(); if (v) { u.voice = v; u.lang = v.lang; }
+      u.rate = parseFloat(rateSel.value) || 1;
+      u.onend = () => { if (myRun !== run) return; spokeAny = true; pos.i++; speakFrom(myRun); };
+      u.onerror = e => {
+        if (myRun !== run || e.error === 'interrupted' || e.error === 'canceled') return;
+        stopAll(); setNow('The voice stopped unexpectedly (' + e.error + '). Try another voice or press play again.', true);
+      };
+      synth.speak(u);
+    }
+
+    function finish() {
+      const none = !spokeAny && current?.kind === 'pdf';
+      stopAll(true);
+      setNow(none ? 'This PDF has no selectable text (it may be a scanned image), so it can\'t be read aloud.' : 'Finished reading. Press play to start again from the top.', true);
+    }
+
+    function start(from) {
+      if (!synth || !voices.length || !current || !['pdf','html','text'].includes(current.kind)) return;
+      run++; synth.cancel();
+      pos = from || pos || (current.kind === 'pdf' ? { page: currentPageNum(), i: 0 } : { page: 0, i: 0 });
+      setPlaying(true);
+      const my = run;
+      setTimeout(() => speakFrom(my), 60);   // let cancel() settle in Chrome
+    }
+    function pause() { run++; synth?.cancel(); setPlaying(false); }
+    function stopAll(keepMsg) {
+      run++; synth?.cancel(); setPlaying(false); pos = null; spokeAny = false; light(null);
+      if (!keepMsg) setNow(idleMsg, true);
+    }
+    async function skip(dir) {
+      if (!current) return;
+      if (!pos) pos = current.kind === 'pdf' ? { page: currentPageNum(), i: 0 } : { page: 0, i: 0 };
+      let i = pos.i + dir;
+      if (current.kind === 'pdf') {
+        if (i < 0 && pos.page > 1) { const prev = await pdfChunks(current, pos.page - 1); pos = { page: pos.page - 1, i: Math.max(0, prev.length - 1) }; }
+        else pos = { page: pos.page, i: Math.max(0, i) };
+      } else pos = { page: 0, i: Math.max(0, Math.min(docChunks().length - 1, i)) };
+      if (playing) start(pos);
+      else { const list = current.kind === 'pdf' ? await pdfChunks(current, pos.page) : docChunks(); if (list[pos.i]) { setNow(list[pos.i].text); light(list[pos.i].el || pageEls()[pos.page - 1]); } }
+    }
+
+    // wiring
+    if (!synth) {
+      $('play').disabled = true; ['back','fwd','stop','sampleVoice'].forEach(id => $(id).disabled = true);
+      voiceSel.innerHTML = '<option>Not available</option>'; voiceSel.disabled = true;
+      setNow('This browser can\'t read text aloud. Try Chrome, Edge, Safari or Firefox.', true);
+    } else {
+      loadVoices();
+      synth.addEventListener?.('voiceschanged', loadVoices);
+      if (!('addEventListener' in synth)) synth.onvoiceschanged = loadVoices;
+      setTimeout(() => { if (!voices.length) loadVoices(); }, 800);
+    }
+    const savedRate = store.get('rd-rate'); if (savedRate) rateSel.value = savedRate;
+
+    $('play').onclick = () => playing ? pause() : start(pos);
+    $('stop').onclick = () => stopAll();
+    $('back').onclick = () => skip(-1);
+    $('fwd').onclick = () => skip(1);
+    voiceSel.onchange = () => { store.set('rd-voice', voiceSel.value); if (playing) start(pos); };
+    rateSel.onchange = () => { store.set('rd-rate', rateSel.value); if (playing) start(pos); };
+    $('sampleVoice').onclick = () => {
+      if (!voices.length) return;
+      if (playing) pause();
+      synth.cancel();
+      const v = currentVoice();
+      const u = new SpeechSynthesisUtterance(v && !v.lang.toLowerCase().startsWith('en') ? v.name : `Hello, I'm ${v ? v.name.replace(/^(Microsoft|Google)\s+/, '').split(/[\s-]/)[0] : 'your reader'}. I'll read your document to you.`);
+      if (v) { u.voice = v; u.lang = v.lang; }
+      u.rate = parseFloat(rateSel.value) || 1;
+      setTimeout(() => synth.speak(u), 60);
+    };
+
+    // click a paragraph (or a PDF page) to read from there
+    view.addEventListener('click', async e => {
+      if (!current || String(window.getSelection?.() || '').length) return;
+      if (current.kind === 'pdf') {
+        const pg = e.target.closest('.pg'); if (pg) start({ page: +pg.dataset.n, i: 0 });
+        return;
+      }
+      const list = docChunks();
+      const b = e.target.closest('[data-say]'); if (!b) return;
+      const i = list.findIndex(c => c.el === b); if (i >= 0) start({ page: 0, i });
+    });
+
+    window.addEventListener('beforeunload', () => synth?.cancel());
+    return {
+      reset() { stopAll(); if (current) delete current._chunks; },
+      prepare() { if (current && current.kind !== 'pdf') docChunks(); },
+    };
+  })();
+
+  /* ---------- sample so the desk isn't empty ---------- */
+  const sampleText = `<span class="sample-flag">Example document</span>
+<h1>How to use the Reading Desk</h1>
+<p>Upload a PDF, a Word document (.docx), or a plain text, Markdown or HTML file using the box on the left. You can drop several at once. Each one lands on the desk, and you can switch between them without reloading.</p>
+<h2>Listening</h2>
+<p>Press the round play button at the bottom to have the document read aloud. Pick a voice from the Voice list and press Hear this voice to try it. Change the speed at any time.</p>
+<p>The paragraph being read is highlighted, and the current sentence shows above the controls. Click any paragraph to jump there. The skip buttons move one sentence back or forward.</p>
+<p>The voices come from your device, so the list differs between a phone, a Mac and a Windows computer. Chrome and Edge usually offer extra online voices.</p>
+<h2>Reading PDFs</h2>
+<p>PDF pages render exactly as printed. Use the arrows or type a page number to jump, and the plus and minus buttons to zoom. <em>Fit width</em> sizes pages to the window.</p>
+<h2>Reading documents</h2>
+<p>Word and text files are set in a comfortable reading face. Use A− and A+ to change the text size, and the find box to highlight every match. Press Enter in the find box to step through results.</p>
+<h2>Privacy</h2>
+<p>Files are read inside your browser. Nothing is uploaded to a server, and the desk clears when you close the tab.</p>
+<p>Try searching this page for the word <strong>desk</strong> to see highlighting in action.</p>`;
+
+  /* ---------- uploads ---------- */
+  drop.addEventListener('click', () => picker.click());
+  drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); picker.click(); } });
+  picker.addEventListener('change', () => { handleFiles(picker.files); picker.value = ''; });
+  ['dragenter','dragover'].forEach(t => document.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave','drop'].forEach(t => document.addEventListener(t, e => { e.preventDefault(); if (t === 'drop' || !e.relatedTarget) drop.classList.remove('over'); }));
+  document.addEventListener('drop', e => { if (e.dataTransfer?.files?.length) handleFiles(e.dataTransfer.files); });
+
+  async function handleFiles(list) {
+    let last = null;
+    for (const f of list) {
+      const ext = extOf(f.name);
+      const entry = { id: ++seq, name: f.name, size: f.size, ext };
+      try {
+        if (ext === 'pdf') {
+          if (!window.pdfjsLib) throw new Error('The PDF engine did not load. Check your connection and reload the page.');
+          const data = new Uint8Array(await f.arrayBuffer());
+          entry.pdf = await pdfjsLib.getDocument({ data }).promise;
+          entry.kind = 'pdf';
+          entry.page = 1;
+        } else if (ext === 'docx') {
+          if (!window.mammoth) throw new Error('The Word engine did not load. Check your connection and reload the page.');
+          const res = await mammoth.convertToHtml({ arrayBuffer: await f.arrayBuffer() });
+          entry.kind = 'html'; entry.html = res.value || '<p><em>This document has no readable text.</em></p>';
+        } else if (ext === 'doc') {
+          throw new Error('Older .doc files are not supported. Save it as .docx or PDF and upload again.');
+        } else if (ext === 'html' || ext === 'htm') {
+          const parsed = new DOMParser().parseFromString(await f.text(), 'text/html');
+          parsed.querySelectorAll('script,style,iframe,object,embed,link,meta').forEach(n => n.remove());
+          parsed.querySelectorAll('*').forEach(n => [...n.attributes].forEach(a => { if (/^on/i.test(a.name) || /javascript:/i.test(a.value)) n.removeAttribute(a.name); }));
+          entry.kind = 'html'; entry.html = parsed.body.innerHTML;
+        } else if (ext === 'md' || ext === 'markdown') {
+          entry.kind = 'html'; entry.html = miniMarkdown(await f.text());
+        } else {
+          entry.kind = 'text'; entry.text = await f.text();
+        }
+      } catch (err) {
+        entry.kind = 'error';
+        entry.error = err.message && /password/i.test(err.name + err.message)
+          ? 'This PDF is password protected and can\'t be opened here.'
+          : (err.message || 'This file could not be read.');
+      }
+      addDoc(entry, false);
+      last = entry;
+    }
+    if (last) open(last.id);
+  }
+
+  function miniMarkdown(src) {
+    const lines = esc(src).split(/\r?\n/); let out = [], para = [], inCode = false, code = [];
+    const inline = s => s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/`(.+?)`/g,'<code>$1</code>');
+    const flush = () => { if (para.length) { out.push('<p>' + inline(para.join(' ')) + '</p>'); para = []; } };
+    for (const l of lines) {
+      if (/^```/.test(l)) { if (inCode) { out.push('<pre>' + code.join('\n') + '</pre>'); code = []; } else flush(); inCode = !inCode; continue; }
+      if (inCode) { code.push(l); continue; }
+      const h = l.match(/^(#{1,3})\s+(.*)/);
+      if (h) { flush(); out.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`); }
+      else if (/^\s*[-*]\s+/.test(l)) { flush(); out.push('<p>• ' + inline(l.replace(/^\s*[-*]\s+/,'')) + '</p>'); }
+      else if (!l.trim()) flush(); else para.push(l);
+    }
+    flush(); return out.join('\n');
+  }
+
+  function addDoc(entry, select = true) {
+    docs.push(entry);
+    renderShelf();
+    if (select) open(entry.id);
+  }
+
+  function renderShelf() {
+    filesEl.innerHTML = '';
+    for (const d of docs) {
+      const li = document.createElement('li');
+      li.className = 'file' + (current && current.id === d.id ? ' active' : '');
+      li.tabIndex = 0;
+      const tag = d.kind === 'pdf' ? 'PDF' : d.kind === 'error' ? '!' : (extOf(d.name) || 'TXT').toUpperCase().slice(0,4);
+      const meta = d.kind === 'pdf' ? `${d.pdf.numPages} pages · ${fmtSize(d.size)}` : d.kind === 'error' ? 'Couldn\'t open' : fmtSize(d.size);
+      li.innerHTML = `<span class="tag">${esc(tag)}</span><span style="min-width:0"><div class="fname">${esc(d.name)}</div><div class="fmeta">${meta}</div></span><button class="x" aria-label="Remove ${esc(d.name)}">×</button>`;
+      li.addEventListener('click', e => { if (!e.target.closest('.x')) open(d.id); });
+      li.addEventListener('keydown', e => { if (e.key === 'Enter') open(d.id); });
+      li.querySelector('.x').addEventListener('click', () => remove(d.id));
+      filesEl.appendChild(li);
+    }
+  }
+
+  function remove(id) {
+    const i = docs.findIndex(d => d.id === id);
+    if (i < 0) return;
+    docs[i].pdf?.destroy?.();
+    docs.splice(i, 1);
+    if (current && current.id === id) { current = null; docs.length ? open(docs[Math.max(0, i - 1)].id) : showEmpty(); }
+    renderShelf();
+  }
+
+  function showEmpty() {
+    speech.reset();
+    $('title').textContent = 'Nothing open';
+    $('stats').textContent = '';
+    $('pdfTools').hidden = $('docTools').hidden = true;
+    view.innerHTML = `<div class="note"><h2>The desk is clear</h2><p>Upload a PDF or document to start reading.</p></div>`;
+  }
+
+  /* ---------- open ---------- */
+  let observer = null;
+  function open(id) {
+    current = docs.find(d => d.id === id);
+    if (!current) return;
+    speech.reset();
+    renderShelf();
+    observer?.disconnect();
+    view.scrollTop = 0;
+    $('title').textContent = current.name;
+    $('pdfTools').hidden = current.kind !== 'pdf';
+    $('docTools').hidden = !(current.kind === 'html' || current.kind === 'text');
+    hits = []; hitIdx = -1; $('search').value = ''; $('hits').textContent = '';
+    if (current.kind === 'pdf') return openPdf();
+    if (current.kind === 'error') {
+      $('stats').textContent = fmtSize(current.size);
+      view.innerHTML = `<div class="note"><h2>Couldn't open this file</h2><p class="err">${esc(current.error)}</p></div>`;
+      return;
+    }
+    const doc = document.createElement('article');
+    doc.className = 'doc';
+    if (current.kind === 'text') {
+      const pre = document.createElement('pre'); pre.className = 'plain';
+      current.text.split(/\r?\n\s*\r?\n/).forEach(t => { if (t.trim()) { const p = document.createElement('p'); p.textContent = t; pre.appendChild(p); } });
+      doc.appendChild(pre);
+    }
+    else doc.innerHTML = current.html;
+    view.innerHTML = '';
+    view.appendChild(doc);
+    speech.prepare();
+    $('stats').textContent = (current.sample ? 'Example · ' : fmtSize(current.size) + ' · ') + readingStats(doc.textContent);
+  }
+
+  /* ---------- PDF ---------- */
+  async function openPdf() {
+    const d = current, pdf = d.pdf;
+    $('pageOf').textContent = '/ ' + pdf.numPages;
+    $('stats').textContent = `${pdf.numPages} pages · ${fmtSize(d.size)}`;
+    view.innerHTML = '<div class="pages" id="pages"></div>';
+    const pagesEl = $('pages');
+    const first = await pdf.getPage(1);
+    if (current !== d) return;
+    const base = first.getViewport({ scale: 1 });
+    const scale = effectiveScale(base.width);
+    $('zoomRead').textContent = Math.round(scale * 100) + '%';
+    const sizes = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+      // Assume same size as page 1 until rendered; correct on render.
+      const wrap = document.createElement('div');
+      wrap.className = 'pg'; wrap.dataset.n = i;
+      wrap.style.width = base.width * scale + 'px';
+      wrap.style.height = base.height * scale + 'px';
+      wrap.innerHTML = `<span class="num">${i}</span>`;
+      pagesEl.appendChild(wrap);
+    }
+    const rendered = new Map();
+    observer = new IntersectionObserver(entries => {
+      for (const e of entries) {
+        if (e.isIntersecting && !rendered.has(e.target)) { rendered.set(e.target, true); renderPage(d, e.target, scale); }
+      }
+    }, { root: view, rootMargin: '600px 0px' });
+    pagesEl.querySelectorAll('.pg').forEach(p => observer.observe(p));
+    scrollToPage(d.page || 1, false);
+    updatePageReadout();
+  }
+
+  function effectiveScale(pageWidth) {
+    if (fitMode) {
+      const avail = view.clientWidth - 40;
+      zoom = Math.max(0.25, Math.min(3, avail / pageWidth));
+    }
+    return zoom;
+  }
+
+  async function renderPage(d, wrap, scale) {
+    try {
+      const page = await d.pdf.getPage(+wrap.dataset.n);
+      const vp = page.getViewport({ scale });
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.floor(vp.width * dpr); canvas.height = Math.floor(vp.height * dpr);
+      canvas.style.width = vp.width + 'px'; canvas.style.height = vp.height + 'px';
+      wrap.style.width = vp.width + 'px'; wrap.style.height = vp.height + 'px';
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp, transform: dpr !== 1 ? [dpr,0,0,dpr,0,0] : null }).promise;
+      wrap.prepend(canvas);
+    } catch (e) { /* page failed; leave blank */ }
+  }
+
+  function pageEls() { return [...view.querySelectorAll('.pg')]; }
+  function scrollToPage(n, smooth = true) {
+    const el = pageEls()[n - 1];
+    if (el) view.scrollTo({ top: el.offsetTop - 20, behavior: smooth ? 'smooth' : 'auto' });
+  }
+  function currentPageNum() {
+    const mid = view.scrollTop + view.clientHeight * 0.35;
+    let n = 1;
+    for (const el of pageEls()) { if (el.offsetTop <= mid) n = +el.dataset.n; else break; }
+    return n;
+  }
+  function updatePageReadout() {
+    if (!current || current.kind !== 'pdf') return;
+    const n = currentPageNum();
+    current.page = n;
+    if (document.activeElement !== $('pageIn')) $('pageIn').value = n;
+    $('prev').disabled = n <= 1;
+    $('next').disabled = n >= current.pdf.numPages;
+  }
+  view.addEventListener('scroll', () => requestAnimationFrame(updatePageReadout), { passive: true });
+  $('prev').onclick = () => scrollToPage(currentPageNum() - 1);
+  $('next').onclick = () => scrollToPage(currentPageNum() + 1);
+  $('pageIn').addEventListener('change', () => {
+    const n = Math.max(1, Math.min(current.pdf.numPages, parseInt($('pageIn').value, 10) || 1));
+    scrollToPage(n);
+  });
+  const rezoom = () => { const p = currentPageNum(); current.page = p; openPdf(); };
+  $('zoomIn').onclick = () => { fitMode = false; zoom = Math.min(4, +(zoom * 1.2).toFixed(2)); rezoom(); };
+  $('zoomOut').onclick = () => { fitMode = false; zoom = Math.max(0.25, +(zoom / 1.2).toFixed(2)); rezoom(); };
+  $('fit').onclick = () => { fitMode = true; rezoom(); };
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (current?.kind === 'pdf' && fitMode) rezoom(); }, 250); });
+
+  /* ---------- document text tools ---------- */
+  const setSize = s => { readSize = Math.max(13, Math.min(30, s)); document.documentElement.style.setProperty('--read-size', readSize + 'px'); };
+  $('smaller').onclick = () => setSize(readSize - 2);
+  $('bigger').onclick = () => setSize(readSize + 2);
+
+  function clearMarks(root) {
+    root.querySelectorAll('mark[data-hit]').forEach(m => { const t = document.createTextNode(m.textContent); m.replaceWith(t); });
+    root.normalize();
+  }
+  function runSearch() {
+    const root = view.querySelector('.doc'); if (!root) return;
+    clearMarks(root); hits = []; hitIdx = -1;
+    const q = $('search').value.trim();
+    if (q.length < 2) { $('hits').textContent = ''; return; }
+    const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+    for (const node of nodes) {
+      const txt = node.nodeValue; rx.lastIndex = 0;
+      if (!rx.test(txt)) continue;
+      const frag = document.createDocumentFragment(); let last = 0; rx.lastIndex = 0; let m;
+      while ((m = rx.exec(txt))) {
+        frag.append(txt.slice(last, m.index));
+        const mk = document.createElement('mark'); mk.dataset.hit = ''; mk.textContent = m[0];
+        frag.append(mk); hits.push(mk); last = m.index + m[0].length;
+      }
+      frag.append(txt.slice(last)); node.replaceWith(frag);
+    }
+    $('hits').textContent = hits.length ? `0/${hits.length}` : 'No matches';
+    if (hits.length) step(1);
+  }
+  function step(dir) {
+    if (!hits.length) return;
+    hits[hitIdx]?.classList.remove('cur');
+    hitIdx = (hitIdx + dir + hits.length) % hits.length;
+    hits[hitIdx].classList.add('cur');
+    hits[hitIdx].scrollIntoView({ block: 'center', behavior: 'smooth' });
+    $('hits').textContent = `${hitIdx + 1}/${hits.length}`;
+  }
+  let st; $('search').addEventListener('input', () => { clearTimeout(st); st = setTimeout(runSearch, 200); });
+  $('search').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); step(e.shiftKey ? -1 : 1); } });
+  $('hitNext').onclick = () => step(1);
+  $('hitPrev').onclick = () => step(-1);
+
+  document.addEventListener('keydown', e => {
+    if (!current || current.kind !== 'pdf' || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); scrollToPage(currentPageNum() + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); scrollToPage(currentPageNum() - 1); }
+  });
+
+  // open the example last, once everything above is set up
+  addDoc({ id: ++seq, name: 'Welcome.html', size: sampleText.length, kind: 'html', html: sampleText, sample: true });
+})();
+</script>
+
+</body></html>
